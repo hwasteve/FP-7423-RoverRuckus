@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.Erik;
 
 import android.util.Log;
-import android.view.ViewDebug;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -21,11 +20,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 
 import org.firstinspires.ftc.teamcode.*;
-import org.firstinspires.ftc.teamcode.Library.MyBoschIMU;
 
 public class ErikDriveTrain extends DriveTrain {
 
-    public ErikDriveTrain(DcMotor frontleft, DcMotor frontright, DcMotor backleft, DcMotor backright)  {
+    public EricDriveTrain(DcMotor frontleft, DcMotor frontright, DcMotor backleft, DcMotor backright)  {
         super(frontleft, frontright, backleft, backright);
         
       // is there anything else to be added here ?     
@@ -235,7 +233,7 @@ public class ErikDriveTrain extends DriveTrain {
     }
     
     @Override
-    public void TurnToImage(float initialPower, Direction d, VuforiaTrackable imageTarget, MyBoschIMU imu, OpMode opMode) {
+    public void TurnToImage(float initialPower, Direction d, VuforiaTrackable imageTarget, BNO055IMU imu, OpMode opMode) {
         //super.TurnToImage(initialPower, d, imageTarget, imu); // no contructor for method
         
           // in Erik's local TurnToImageErik, OpMode is needed to collect status data, question for steve
@@ -257,9 +255,8 @@ public class ErikDriveTrain extends DriveTrain {
         turningstep = 0.01F;
         turningRobotSpeed = initialPower;
        // turningRobotSpeed = turningMax;
-        // add following code for new robot, testing new robot.
-        opMode.telemetry.addData("just entered turning loop, initial turningRobotSpeed = ", turningRobotSpeed);
-        opMode.telemetry.update();
+        //opMode.telemetry.addData("XRotationRate", turningVelocity);
+        //opMode.telemetry.update();
        sleepTime = 1001;
 
         bl.setPower(turningRobotSpeed);
@@ -283,7 +280,7 @@ public class ErikDriveTrain extends DriveTrain {
             e.printStackTrace();
         }
 
-        turningRobotSpeed = 0.15f; // at vinay, 0.13 ,at erik, 0.17
+        turningRobotSpeed = 0.17f; // at vinay, 0.13 ,at erik, 0.17
 
 
         while (pos == null) {
@@ -292,15 +289,14 @@ public class ErikDriveTrain extends DriveTrain {
             br.setPower(-turningRobotSpeed);
             fr.setPower(-turningRobotSpeed);
 
-            opMode.telemetry.addData("in slow turning phase, before IMU call. turning power", turningRobotSpeed);
-
             x_turningVelocity = Math.abs(imu.getAngularVelocity().xRotationRate);
             y_turningVelocity = Math.abs(imu.getAngularVelocity().yRotationRate);
             z_turningVelocity = Math.abs(imu.getAngularVelocity().zRotationRate);
+
             opMode.telemetry.addData("XRotationRate", x_turningVelocity);
             opMode.telemetry.addData("yRotationRate", y_turningVelocity);
             opMode.telemetry.addData("zRotationRate", z_turningVelocity);
-            opMode.telemetry.addData("in slow turning phase, after IMU call. turning power", turningRobotSpeed);
+            opMode.telemetry.addData("turning power", turningRobotSpeed);
 
             opMode.telemetry.update();
 
@@ -318,72 +314,15 @@ public class ErikDriveTrain extends DriveTrain {
             //            sleepTime = (long) Math.floor((1/turningRobotSpeed)*sleepTime);
         }
  
-        opMode.telemetry.addData("in turn to image routine, find target, before stop", 0);
+        opMode.telemetry.addData("in turn to image routing, find target, before stop", 0);
         opMode.telemetry.update();
         bl.setPower(0);
         fl.setPower(0);
         br.setPower(0);
         fr.setPower(0);
-        opMode.telemetry.addData("in turn to image routine, RIGHT after stop", 0);
+        opMode.telemetry.addData("in turn to image routing, RIGHT after stop", 0);
         opMode.telemetry.update();
  
         
     }
-
-    @Override
-    public void DriveStraight(float power, float distance, Direction d, MyBoschIMU myIMU, OpMode opMode) {
-
-        // gear box ratio is not right, float x = 25.4F*(1120F * distance)/(4F * (float)Math.PI);// here distance is in mm
-        float x = 2.54f*(1120F * distance)/(4F * (float)Math.PI); // still in inch ?
-        int targetEncoderValue = Math.round(x);
-        //float angleError = 0;
-        //float startAngle;
-        final float P_Drive_COEFF = 0.15f;   // this is to control proportionally or left or right power depending on current heading
-
-        myIMU.resetAndStart(d);
-        float startAngle = myIMU.getAngularOrientation().firstAngle;
-        opMode.telemetry.addData("target first angle: ", startAngle);
-//        opMode.telemetry.update();
-
-        fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        int currentPosition = 0;
-
-
-        if (d == Direction.BACKWARD) {
-            power = -1 * power;
-        }
-        opMode.telemetry.addData("initial position encoder: ", currentPosition);
-        opMode.telemetry.addData("target position: ", targetEncoderValue);
-        opMode.telemetry.update();
-
-
-        while (currentPosition < targetEncoderValue) {
-
-            currentPosition = (Math.abs(fl.getCurrentPosition()));
-            if (myIMU.getAngularOrientation().firstAngle > 3.0f ) { // heading to left, need to make right adjustment)
-                fl.setPower(power*(1+ P_Drive_COEFF));
-                fr.setPower(power);
-                bl.setPower(power*(1+ P_Drive_COEFF));
-                br.setPower(power);}
-            else if (myIMU.getAngularOrientation().firstAngle < -3.0f) { // heading to right
-                fl.setPower(power);
-                fr.setPower(power*(1+ P_Drive_COEFF));
-                bl.setPower(power);
-                br.setPower(power*(1+ P_Drive_COEFF));}
-            else {
-                fl.setPower(power);
-                fr.setPower(power);
-                bl.setPower(power);
-                br.setPower(power); }
-            opMode.telemetry.addData("current position encoder: ", currentPosition);
-            opMode.telemetry.addData("target position: ", targetEncoderValue);
-            opMode.telemetry.addData("current angle: ", myIMU.getAngularOrientation().firstAngle);
-            opMode.telemetry.update();
-        }
-
-        StopAll();
-
-    }
-
 }
