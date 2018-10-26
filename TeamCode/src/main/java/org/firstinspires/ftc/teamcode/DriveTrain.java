@@ -18,18 +18,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
-import org.firstinspires.ftc.teamcode.Library.MyBoschIMU;
-import org.firstinspires.ftc.teamcode.MyClass.PositionToImage;
 
 public class DriveTrain {
 
-    protected DcMotor fr;
-    protected DcMotor fl;
-    protected DcMotor br;
-    protected DcMotor bl;
-
-    protected PositionToImage lastKnownPosition;
-
+    DcMotor fr;
+    DcMotor fl;
+    DcMotor br;
+    DcMotor bl;
 
     public DriveTrain(DcMotor frontleft, DcMotor frontright, DcMotor backleft, DcMotor backright) {
 
@@ -38,10 +33,8 @@ public class DriveTrain {
         br = backright;
         bl = backleft;
 
-        lastKnownPosition = new PositionToImage(); //instantiate this first
 
     }
-
     public void Strafe(float power, float distance, Direction d /*, OpMode op*/) {
 
         float x = (2240F * distance)/(4F * (float)Math.PI);
@@ -70,7 +63,6 @@ public class DriveTrain {
 
         StopAll();
     }
-
     public void Drive(float power, float distance, Direction d) {
 
         float x = (1120F * distance)/(4F * (float)Math.PI);
@@ -79,12 +71,6 @@ public class DriveTrain {
         fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         int currentPosition = 0;
-
-        //added code below to support reverse driving, tested Oct 29, it is good
-
-        if (d == Direction.BACKWARD) {
-            power = -1 * power;
-        }
 
         while (currentPosition < targetEncoderValue) {
 
@@ -99,52 +85,31 @@ public class DriveTrain {
 
     }
 
-    public void Turn(float power, int angle, Direction d, MyBoschIMU imu, OpMode opMode) {
+    public void Turn(float power, int angle, Direction d, BNO055IMU imu, OpMode opMode) {
+        int startAngle = ((Math.round(imu.getAngularOrientation().firstAngle))+180);
 
-        Orientation startOrientation = imu.resetAndStart(d);
+        int targetAngle = startAngle + angle;
 
-        float targetAngle;
-        float currentAngle;
+        int currentAngle = startAngle;
+
         float actualPower = power;
         if (d == Direction.CLOCKWISE) {
             actualPower = -(power);
-
-            targetAngle = startOrientation.firstAngle - angle;
-            currentAngle = startOrientation.firstAngle;
-            while (currentAngle > targetAngle) {
-
-                opMode.telemetry.addData("start:", startOrientation.firstAngle);
-                opMode.telemetry.addData("current:", currentAngle);
-                opMode.telemetry.addData("target:", targetAngle);
-                opMode.telemetry.update();
-
-                currentAngle = imu.getAngularOrientation().firstAngle;
-                fl.setPower(-(actualPower));
-                fr.setPower(actualPower);
-                bl.setPower(-(actualPower));
-                br.setPower(actualPower);
-            }
         }
-        else {
-            actualPower = power;
+        while (currentAngle < targetAngle) {
 
-            targetAngle = startOrientation.firstAngle + angle;
-            currentAngle = startOrientation.firstAngle;
-            while (currentAngle < targetAngle) {
+            opMode.telemetry.addData("start:", startAngle);
+            opMode.telemetry.addData("current:", currentAngle);
+            opMode.telemetry.addData("target:", targetAngle);
+            opMode.telemetry.addData("actual:", (currentAngle-180));
+            opMode.telemetry.update();
 
-                opMode.telemetry.addData("start:", startOrientation.firstAngle);
-                opMode.telemetry.addData("current:", currentAngle);
-                opMode.telemetry.addData("target:", targetAngle);
-                opMode.telemetry.update();
-
-                currentAngle = imu.getAngularOrientation().firstAngle;
-                fl.setPower(-(actualPower));
-                fr.setPower(actualPower);
-                bl.setPower(-(actualPower));
-                br.setPower(actualPower);
-            }
+            currentAngle = ((Math.round(imu.getAngularOrientation().firstAngle))+180);
+            fl.setPower(-(actualPower));
+            fr.setPower(actualPower);
+            bl.setPower(-(actualPower));
+            br.setPower(actualPower);
         }
-
 
         StopAll();
 
@@ -152,6 +117,7 @@ public class DriveTrain {
 
     public void StrafeToImage(float power, VuforiaTrackable imageTarget, OpMode opMode) {
         VuforiaTrackableDefaultListener imageListener = (VuforiaTrackableDefaultListener) imageTarget.getListener();
+        //OpenGLMatrix pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
 
         float actualPower = power;
 
@@ -162,7 +128,7 @@ public class DriveTrain {
             float additionalpower = 0;
 
 
-            while ((Math.abs(d) >= 100) && (imageListener.isVisible())) {
+            while (Math.abs(d) >= 100) {
                 pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
 
                 Orientation orientation = Orientation.getOrientation(pos, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
@@ -172,13 +138,8 @@ public class DriveTrain {
                 Orientation adjustedOrientation = Orientation.getOrientation(adjustedPose, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
                 opMode.telemetry.addData("Angle: ", "x = %f, y = %f, z = %f", adjustedOrientation.firstAngle, adjustedOrientation.secondAngle, adjustedOrientation.thirdAngle);
 
-                //Keep track the last known location
-                lastKnownPosition.translation = pos.getTranslation();
-                lastKnownPosition.orientation = adjustedOrientation;
-
-                d = lastKnownPosition.translation.get(2);
-                x = lastKnownPosition.translation.get(0) * -1;
-
+                d = pos.getColumn(3).get(2);
+                x = pos.getColumn(3).get(0) * -1;
                 opMode.telemetry.addData("x: ", "x = %f", x);
                 if(x > 15)
                 {
@@ -220,25 +181,6 @@ public class DriveTrain {
             }
         }
         StopAll();
-
-        float remainDistance = lastKnownPosition.translation.get(2) - 100;
-        opMode.telemetry.addData("Remaining Distance: ", "x = %f", remainDistance);
-        if (remainDistance > 30)
-            this.Strafe(0.5F, remainDistance, Direction.RIGHT);
-        opMode.telemetry.update();
-     }
-
-     public PositionToImage getLastKnownPosition() {
-        return lastKnownPosition;
-     }
-
-    public void TurnToImage(float initialPower, Direction d, VuforiaTrackable imageTarget, MyBoschIMU imu, OpMode opMode) {
-        OpenGLMatrix pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
-        float turningVelocity = Math.abs(imu.getAngularVelocity().xRotationRate);
-
-        while (pos == null) {
-
-        }
     }
 
     public void TurnToImage(float initialPower, Direction d, VuforiaTrackable imageTarget, BNO055IMU imu) {
@@ -246,7 +188,7 @@ public class DriveTrain {
         float turningVelocity = Math.abs(imu.getAngularVelocity().xRotationRate);
 
         while (pos == null) {
-            
+
         }
     }
 
@@ -256,6 +198,7 @@ public class DriveTrain {
         bl.setPower(0);
         br.setPower(0);
     }
+
 
     private float Max(float x1, float x2, float x3, float x4) {
         x1 = Math.abs(x1);
@@ -274,38 +217,4 @@ public class DriveTrain {
         return m;
     }
 
-    // is it ok to have a method and it is further defined in subclass, but not here, do I need virtual key word ?
-    public void DriveStraight(float power, float distance, Direction d, MyBoschIMU myIMU, OpMode opMode){
-
-    }
-
-    public boolean DriveUntilImageVisible (float power, Direction direction, float distanceLimit, VuforiaTrackable imageTarget, OpMode opMode) {
-     //The function will move robot forward or backward until it sees the image, then stop
-      // or until distanceLimit is completed but if it still can't see image, then also stop
-        OpenGLMatrix pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
-        float x = (1120F * distanceLimit)/(4F * (float)Math.PI);
-        int targetEncoderValue = Math.round(x);
-
-        fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        int currentPosition = 0;
-
-        if(direction == Direction.BACKWARD){
-            power = -power;
-        }
-
-        while(pos == null && currentPosition < targetEncoderValue){
-            fl.setPower(power);
-            fr.setPower(power);
-            bl.setPower(power);
-            fr.setPower(power);
-            pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
-        }
-
-        if(pos != null){
-            return true;
-        }
-        StopAll();
-        return false;
-    }
 }
