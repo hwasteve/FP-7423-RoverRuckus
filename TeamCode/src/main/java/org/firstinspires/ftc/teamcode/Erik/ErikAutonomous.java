@@ -15,16 +15,16 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.teamcode.*;
-import org.firstinspires.ftc.teamcode.Library.MyBoschIMU;
 
-@Autonomous(name="Erik Auto Subclass", group="none")
-public class ErikAutonomous extends LinearOpMode {
+@Autonomous(name="Erik Auto", group="none")
+
+public class EricAutonomous extends LinearOpMode {
     DcMotor fl;
     DcMotor fr;
     DcMotor bl;
     DcMotor br;
-    DriveTrain drivetrain;  // why not ErikDriveTrain vs DriveTrain type ?
-    MyBoschIMU imu;
+    DriveTrain drivetrain;
+    BNO055IMU imu;
 
     VuforiaLocalizer vuforia;
 
@@ -34,27 +34,23 @@ public class ErikAutonomous extends LinearOpMode {
         bl = hardwareMap.dcMotor.get("backleft");
         br = hardwareMap.dcMotor.get("backright");
 
-        fr.setDirection(DcMotorSimple.Direction.REVERSE);
-        br.setDirection(DcMotorSimple.Direction.REVERSE);
+        fl.setDirection(DcMotorSimple.Direction.REVERSE);
+        bl.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //*******************************************************/////
         ///Use Erik's Drive Train to experiment Erik's change
-        drivetrain = new ErikDriveTrain(fl, fr, bl, br);
+        drivetrain = new EricDriveTrain(fl, fr, bl, br);
 
-        // following code replaced by MyBoschIMU and its class
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.loggingEnabled = true;
+        parameters.loggingTag = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
-        //imu = hardwareMap.get(BNO055IMU.class, "imu");
-        //BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        //parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        //parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        //parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
-        //parameters.loggingEnabled = true;
-        //parameters.loggingTag = "IMU";
-        //parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
-
-        imu = new MyBoschIMU(hardwareMap);
-        //imu.initialize(parameters);
-        imu.initialize(new BNO055IMU.Parameters());
+        imu.initialize(parameters);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         VuforiaLocalizer.Parameters param = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
@@ -98,16 +94,9 @@ public class ErikAutonomous extends LinearOpMode {
         bl.setPower(0);
         fl.setPower(0);
         br.setPower(0);
-
         fr.setPower(0);
 
-        drivetrain.StrafeToImage(0.3F, backTarget, this);  //
-
-        // drive backward for certain distance.
-        drivetrain.Drive(0.2f, 30f, Direction.BACKWARD);
-
-        // can try drive straight..a method defined in subclass and just a skeleton at super class(DriveTrain)
-        drivetrain.DriveStraight(0.2f, 40f, Direction.FORWARD, imu, this);
+        drivetrain.StrafeToImage(0.4F, backTarget, this);  //
 
     }
 }
