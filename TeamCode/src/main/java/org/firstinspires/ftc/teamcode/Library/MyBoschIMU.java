@@ -62,14 +62,7 @@ public class MyBoschIMU implements BNO055IMU {
     public Orientation getAngularOrientation() {
 
         Orientation orientation = myIMU.getAngularOrientation();
-
-        if (startOrientation.firstAngle > 0 && turningDirection == Direction.COUNTERCLOCKWISE && orientation.firstAngle < 0) {
-             orientation.firstAngle = orientation.firstAngle + 360;
-        }
-        else if (startOrientation.firstAngle < 0 && turningDirection == Direction.CLOCKWISE && orientation.firstAngle > 0) {
-             orientation.firstAngle = orientation.firstAngle - 360;
-        }
-
+        orientation.firstAngle = 0; //Here is the logic we need
 
         return orientation;
     }
@@ -100,8 +93,8 @@ public class MyBoschIMU implements BNO055IMU {
 
     @Override
     public AngularVelocity getAngularVelocity() {
-        return myIMU.getAngularVelocity();
-    } // add myIMU Nov 1 to return.
+        return getAngularVelocity();
+    }
 
     @Override
     public Acceleration getLinearAcceleration() {
