@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -14,7 +13,7 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 
 import org.firstinspires.ftc.teamcode.Library.MyBoschIMU;
 
-@Autonomous(name = "Expirement", group = "none")
+@TeleOp(name = "Expirement", group = "none")
 public class ExperimentIMU extends LinearOpMode {
 
 
@@ -50,14 +49,7 @@ public class ExperimentIMU extends LinearOpMode {
 
         waitForStart();
 
-        driveTrain.Turn(.5F, 90, Direction.CLOCKWISE, imu, this);
-        sleep(2000);
-        driveTrain.Turn(.5F, 90, Direction.CLOCKWISE, imu, this);
-        sleep(2000);
-        driveTrain.Turn(.5F, 90, Direction.CLOCKWISE, imu, this);
-        sleep(2000);
-        driveTrain.Turn(.5F, 90, Direction.CLOCKWISE, imu, this);
-        sleep(2000);
 
+        //Call driveTrain to make a few turns here, see what happens
     }
 }
