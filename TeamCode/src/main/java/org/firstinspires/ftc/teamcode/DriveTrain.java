@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
+import org.firstinspires.ftc.teamcode.Library.MyBoschIMU;
 import org.firstinspires.ftc.teamcode.MyClass.PositionToImage;
 
 public class DriveTrain {
@@ -39,7 +40,6 @@ public class DriveTrain {
         lastKnownPosition = new PositionToImage(); //instantiate this first
 
     }
-
     public void Strafe(float power, float distance, Direction d /*, OpMode op*/) {
 
         float x = (2240F * distance)/(4F * (float)Math.PI);
@@ -68,7 +68,6 @@ public class DriveTrain {
 
         StopAll();
     }
-
     public void Drive(float power, float distance, Direction d) {
 
         float x = (1120F * distance)/(4F * (float)Math.PI);
@@ -91,31 +90,52 @@ public class DriveTrain {
 
     }
 
-    public void Turn(float power, int angle, Direction d, BNO055IMU imu, OpMode opMode) {
-        int startAngle = ((Math.round(imu.getAngularOrientation().firstAngle))+180);
+    public void Turn(float power, int angle, Direction d, MyBoschIMU imu, OpMode opMode) {
 
-        int targetAngle = startAngle + angle;
+        Orientation startOrientation = imu.resetAndStart(d);
 
-        int currentAngle = startAngle;
-
+        float targetAngle;
+        float currentAngle;
         float actualPower = power;
         if (d == Direction.CLOCKWISE) {
             actualPower = -(power);
-        }
-        while (currentAngle < targetAngle) {
 
-            opMode.telemetry.addData("start:", startAngle);
-            opMode.telemetry.addData("current:", currentAngle);
-            opMode.telemetry.addData("target:", targetAngle);
-            opMode.telemetry.addData("actual:", (currentAngle-180));
-            opMode.telemetry.update();
+            targetAngle = startOrientation.firstAngle - angle;
+            currentAngle = startOrientation.firstAngle;
+            while (currentAngle > targetAngle) {
 
-            currentAngle = ((Math.round(imu.getAngularOrientation().firstAngle))+180);
-            fl.setPower(-(actualPower));
-            fr.setPower(actualPower);
-            bl.setPower(-(actualPower));
-            br.setPower(actualPower);
+                opMode.telemetry.addData("start:", startOrientation.firstAngle);
+                opMode.telemetry.addData("current:", currentAngle);
+                opMode.telemetry.addData("target:", targetAngle);
+                opMode.telemetry.update();
+
+                currentAngle = imu.getAngularOrientation().firstAngle;
+                fl.setPower(-(actualPower));
+                fr.setPower(actualPower);
+                bl.setPower(-(actualPower));
+                br.setPower(actualPower);
+            }
         }
+        else {
+            actualPower = power;
+
+            targetAngle = startOrientation.firstAngle + angle;
+            currentAngle = startOrientation.firstAngle;
+            while (currentAngle < targetAngle) {
+
+                opMode.telemetry.addData("start:", startOrientation.firstAngle);
+                opMode.telemetry.addData("current:", currentAngle);
+                opMode.telemetry.addData("target:", targetAngle);
+                opMode.telemetry.update();
+
+                currentAngle = imu.getAngularOrientation().firstAngle;
+                fl.setPower(-(actualPower));
+                fr.setPower(actualPower);
+                bl.setPower(-(actualPower));
+                br.setPower(actualPower);
+            }
+        }
+
 
         StopAll();
 
@@ -133,7 +153,7 @@ public class DriveTrain {
             float additionalpower = 0;
 
 
-            while ((Math.abs(d) >= 100) && (imageListener.isVisible())) {
+            while (Math.abs(d) >= 100) {
                 pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
 
                 Orientation orientation = Orientation.getOrientation(pos, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
@@ -191,17 +211,7 @@ public class DriveTrain {
             }
         }
         StopAll();
-
-        float remainDistance = lastKnownPosition.translation.get(2) - 100;
-        opMode.telemetry.addData("Remaining Distance: ", "x = %f", remainDistance);
-        if (remainDistance > 30)
-            this.Strafe(0.5F, remainDistance, Direction.RIGHT);
-        opMode.telemetry.update();
-     }
-
-     public PositionToImage getLastKnownPosition() {
-        return lastKnownPosition;
-     }
+    }
 
     public void TurnToImage(float initialPower, Direction d, VuforiaTrackable imageTarget, BNO055IMU imu, OpMode opMode) {
         OpenGLMatrix pos = ((VuforiaTrackableDefaultListener)imageTarget.getListener()).getPose();
@@ -218,6 +228,7 @@ public class DriveTrain {
         bl.setPower(0);
         br.setPower(0);
     }
+
 
     private float Max(float x1, float x2, float x3, float x4) {
         x1 = Math.abs(x1);
